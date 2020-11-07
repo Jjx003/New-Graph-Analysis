@@ -1,9 +1,13 @@
-import networkx
+# NetworkX used to parse the graphml file
+import networkx 
 from networkx import MultiDiGraph
-import os 
-import json
-import hgraph
-import multiprocessing
+import os  # Used to read graphml files
+import json # Used to export the file
+import hgraph # hgraph is the common module used among other script files
+import multiprocessing # To use all cores of the CPU on the server.
+
+# Config File
+from nodal_size_analysis_config import *
 
 
 graphml_paths = []
@@ -15,7 +19,6 @@ low_blocked_ratio= {}
 mid_blocked_ratio = {}
 high_blocked_ratio = {}
 error_parsing = {}
-NUM_PROCESSES = 8
 
 def analyze_size_impact(process_count, page_graph_files_paths):
 	
@@ -45,7 +48,7 @@ def analyze_size_impact(process_count, page_graph_files_paths):
 			print("Error parsing file: ", page_graph_file_path)
 			error_website_name = page_graph_file_path.split('/')[-2]
 			error_parsing[error_website_name] = 1
-			with open(f'/home/esiu/summer_size_analysis_10092020/error_logs_{process_count}.txt', "a+") as f:
+			with open(f'{OUTPUT_DIR}error_logs_{process_count}.txt', "a+") as f:
 				f.write('----------\n')
 				f.write(page_graph_file_path+'\n')
 				f.write(str(err)+'\n')
@@ -154,40 +157,30 @@ def analyze_size_impact(process_count, page_graph_files_paths):
 	
 	# Dump all the ratio and size info, also the error json file
 	print("Saving all the information of ratios, sizes, and websites...")
-	with open(f'/home/esiu/summer_size_analysis_10092020/resource_ratio_{process_count}.json', 'w') as jsonFile:
+	with open(f'{OUTPUT_DIR}resource_ratio_{process_count}.json', 'w') as jsonFile:
 		jsonFile.write(json.dumps(resource_ratios))
-	with open(f'/home/esiu/summer_size_analysis_10092020/low_blocked_size_{process_count}.json', 'w') as jsonFile:
+	with open(f'{OUTPUT_DIR}low_blocked_size_{process_count}.json', 'w') as jsonFile:
 		jsonFile.write(json.dumps(low_blocked_size))
-	with open(f'/home/esiu/summer_size_analysis_10092020/mid_blocked_size_{process_count}.json', 'w') as jsonFile:
+	with open(f'{OUTPUT_DIR}mid_blocked_size_{process_count}.json', 'w') as jsonFile:
 		jsonFile.write(json.dumps(mid_blocked_size))
-	with open(f'/home/esiu/summer_size_analysis_10092020/high_blocked_size_{process_count}.json', 'w') as jsonFile:
+	with open(f'{OUTPUT_DIR}high_blocked_size_{process_count}.json', 'w') as jsonFile:
 		jsonFile.write(json.dumps(high_blocked_size))
-	with open(f'/home/esiu/summer_size_analysis_10092020/low_blocked_ratio_{process_count}.json', 'w') as jsonFile:
+	with open(f'{OUTPUT_DIR}low_blocked_ratio_{process_count}.json', 'w') as jsonFile:
 		jsonFile.write(json.dumps(low_blocked_ratio))
-	with open(f'/home/esiu/summer_size_analysis_10092020/mid_blocked_ratio_{process_count}.json', 'w') as jsonFile:
+	with open(f'{OUTPUT_DIR}mid_blocked_ratio_{process_count}.json', 'w') as jsonFile:
 		jsonFile.write(json.dumps(mid_blocked_ratio))
-	with open(f'/home/esiu/summer_size_analysis_10092020/high_blocked_ratio_{process_count}.json', 'w') as jsonFile:
+	with open(f'{OUTPUT_DIR}high_blocked_ratio_{process_count}.json', 'w') as jsonFile:
 		jsonFile.write(json.dumps(high_blocked_ratio))
-	with open(f'/home/esiu/summer_size_analysis_10092020/error_parsing_{process_count}.json', 'w') as jsonFile:
+	with open(f'{OUTPUT_DIR}error_parsing_{process_count}.json', 'w') as jsonFile:
 		jsonFile.write(json.dumps(error_parsing))
 
 if __name__ == '__main__':
 
 	# Obtain all the file paths for each graphml file
-    #page_graph_files_paths = hgraph.graph_files('/home/a2wu/')
-
-    # Instead of the above .graph_files, we will use a text file prepared
-	with open("/home/esiu/get_paths/paths_for_a2wu_09242020.txt", "r") as f:
-		x = f.read()
-		graphml_paths = eval(x)
-        
-	with open("/home/esiu/get_paths/paths_for_esiu_09242020.txt", "r") as f:
-		x = f.read()
-		graphml_paths.extend(eval(x))
-        
-	with open("/home/esiu/get_paths/paths_for_jjx003_09242020.txt", "r") as f:
-		x = f.read()
-		graphml_paths.extend(eval(x))
+	for pathsFile in GRAPHML_PATHS_LIST:
+		with open(pathsFile, "r") as f:
+			x = f.read()
+			graphml_paths.extend(eval(x))
 
     # Begin multiprocessing
 	processes = []
