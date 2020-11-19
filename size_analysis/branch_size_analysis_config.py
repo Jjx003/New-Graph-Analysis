@@ -3,7 +3,7 @@ NUM_PROCESSES = 8  # The number of cores a server has
 SERVER_NUMBER = str(13) # Appended to name of output files
 
 MAIN_DIR = "/page_graph/tracker_analysis/Graph-A/"
-OUTPUT_DIR = "/home/esiu/tracker_lists_3/"
+OUTPUT_DIR = "/home/a2wu/tracker_lists_ree/"
 
 # Filter lists
 FILTER_DIR = MAIN_DIR + "filter_lists/"

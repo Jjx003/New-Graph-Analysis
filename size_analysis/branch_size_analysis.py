@@ -10,13 +10,18 @@ import sys
 import time
 import traceback
 
-# Do not include .txt at the end because we will writing the process count at the end
+from branch_size_analysis_config import *
+
+# Do not include .txt at the end because the process number will be appended at the end
 OUTPUT_PATH = OUTPUT_DIR + "branch_info_" + SERVER_NUMBER
 SIZE_ANALYSIS_PATH = OUTPUT_DIR + "size_analysis_" + SERVER_NUMBER
 ERROR_PATH = OUTPUT_DIR + "branch_errors_" + SERVER_NUMBER
 
+# Lists of filter paths
 AD_PATHS = [FILTER_DIR + s for s in AD_FILES]
 TRACKER_PATHS = [FILTER_DIR + s for s in TRACKER_FILES]
+
+# List of .txt files; Each file contains a string that evaluates into the actual list of graphml paths
 GRAPHML_LIST_PATHS = [GRAPHML_LIST_DIR + s for s in GRAPHML_LIST_FILES]
 
 def nodes_set_to_list(nodes_set):
@@ -82,6 +87,7 @@ def DFS(graph, node, starting_node, visited_nodes, branches, html_nodes, lexus_s
                 # DFS(graph, next_node_id, starting_node, visited_nodes, branches, html_nodes)
 
 def get_blocked_bytes(graph, node):
+    """Given a node, calculate how many bytes were requested. Uses outgoing edges """
     total = 0
     resource_node_out_edges = graph.out_edges(nbunch=node, data=True)
     for _, _, edge_data in resource_node_out_edges:
