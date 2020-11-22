@@ -130,7 +130,7 @@ def analyze_size_impact(process_count, page_graph_files_paths):
 if __name__ == '__main__':
         
     # TODO TODO TODO TODO: Explain this path and how to use the get paths script
-    with open("/home/esiu/get_paths/paths_for_jjx003_09242020.txt", "r") as f:
+    with open(PATHS_FILE, "r") as f:
         x = f.read()
         graphml_paths = eval(x)
 
