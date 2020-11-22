@@ -15,6 +15,7 @@ from branch_size_analysis_config import *
 # Do not include .txt at the end because the process number will be appended at the end
 OUTPUT_PATH = OUTPUT_DIR + "branch_info_" + SERVER_NUMBER
 SIZE_ANALYSIS_PATH = OUTPUT_DIR + "size_analysis_" + SERVER_NUMBER
+DEPTHS_PATH = OUTPUT_DIR + "depths_" + SERVER_NUMBER
 ERROR_PATH = OUTPUT_DIR + "branch_errors_" + SERVER_NUMBER
 
 # Lists of filter paths
@@ -61,7 +62,7 @@ def get_graph_and_nodes(path):
     
     return graph, resource_nodes, blocked_nodes, unblocked_nodes
 
-def DFS(graph, node, starting_node, visited_nodes, branches, html_nodes, lexus_stack):
+def DFS(graph, node, starting_node, visited_nodes, branches, html_nodes, depth, lexus_stack):
     """"""
     # Names used in comments: Current Node (Script) -> Connected Node (HTML Element) -> Next Node (Script)
     
@@ -83,7 +84,7 @@ def DFS(graph, node, starting_node, visited_nodes, branches, html_nodes, lexus_s
                 next_node_id = html_nodes[in_node_id]
                 branches[starting_node].append(next_node_id)
                 visited_nodes.add(next_node_id)
-                lexus_stack.append([graph, next_node_id, starting_node, visited_nodes, branches, html_nodes])
+                lexus_stack.append([graph, next_node_id, starting_node, visited_nodes, branches, html_nodes, depth + 1])
                 # DFS(graph, next_node_id, starting_node, visited_nodes, branches, html_nodes)
 
 def get_blocked_bytes(graph, node):
@@ -111,6 +112,8 @@ def branch_analysis(graphml_paths, ad_rules, tracker_rules, process_count):
         total_unknown_edge_node = {}
         num_unblocked_branches = 0
         total_unblocked_edge_node = {}
+        
+        depths = {}
 
         # On the assumption that the type of branch is det. by earliest ancestor.
         blocked_tracker_bytes = 0
@@ -169,12 +172,21 @@ def branch_analysis(graphml_paths, ad_rules, tracker_rules, process_count):
                 #num_edge_node[starting_node] = {}
                 visited_nodes.add(script_resources[starting_node])
                 visited_nodes.add(starting_node)
-                lexus_stack.append([graph, starting_node, starting_node, visited_nodes, branches, html_nodes])
+                
+                max_depth = 0
+                
+                lexus_stack.append([graph, starting_node, starting_node, visited_nodes, branches, html_nodes, 0])
+                
                 while len(lexus_stack) != 0:
                     popped_list = lexus_stack.pop()
                     visited_nodes.add(popped_list[1])
                     visited_nodes.add(popped_list[2])
-                    DFS(popped_list[0], popped_list[1], popped_list[2], visited_nodes, popped_list[4], popped_list[5], lexus_stack)
+                    if max_depth < popped_list[6]:
+                        max_depth = popped_list[6]
+                    DFS(popped_list[0], popped_list[1], popped_list[2], visited_nodes, popped_list[4], popped_list[5], popped_list[6], lexus_stack)
+                    
+                depths[starting_node] = max_depth
+                    
                 current_branch_resources = set()
                 earliest_ancestor = branch_resources[starting_node][0]
                 earliest_ancestor_type = "unknown"
@@ -276,11 +288,12 @@ def branch_analysis(graphml_paths, ad_rules, tracker_rules, process_count):
                 f.write(url + "," + str(blocked_tracker_bytes) + "," + str(blocked_ad_bytes) + "," +    \
                         str(blocked_unknown_bytes) + "," + str(blocked_total_bytes) + ',' +             \
                         str(unblocked_but_blocked_ancestor_bytes) +  "," +                              \
-                        str(remaining_blocked_total_bytes) + "\n")
+                        str(remaining_blocked_total_bytes) + "," + str(unblocked_bytes) + "\n")
                 # f.write(url + "," + str(unblocked_bytes) + "\n")
                 # f.write(url + "," + str(unblocked_bytes + blocked_total_bytes + remaining_blocked_total_bytes) + "\n")
 
-                        
+            with open(DEPTHS_PATH + f'_{process_count}.txt', "a+", encoding="utf8") as f:
+                f.write(url + "," + str(depths) + "\n")
 
             # Generate branches and first level off each branch
             for starting_node in unblocked_starting_nodes:
