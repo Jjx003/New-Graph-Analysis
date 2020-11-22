@@ -10,6 +10,7 @@ FILTER_DIR = './filters/'
 ERROR_LOG_DIR = './errors/'
 PRIVACY_FILTER_FILES = ["easyprivacy_09_10_2020.txt", "ublockprivacy_08_29_2020.txt"]
 AD_FILTER_FILES = ['easylist_09_10_2020.txt', 'ublockfilters_09_10_2020.txt']
+PATHS_FILE = "/home/esiu/get_paths/paths_for_jjx003_09242020.txt"
 
 BYTES_OUTPUT_DIR = './output'
 NUM_PROCESSES = 8 # Modify according to your hardware capabilities
@@ -43,14 +44,24 @@ def get_blocked_bytes(graph, node):
 # Main function to aggregate all data information into readable files
 def analyze_size_impact(process_count, page_graph_files_paths):
     error_parsing = {} # Dictionary containing all files that failed to parse
-    website_dict = {} # Dictionary containing a [website] -> {byte dictionary}. (see current_dictionary)
+    # website_dict = {} # Dictionary containing a [website] -> {byte dictionary}. (see current_dictionary)
 
 	# For each graphml file
     count = 1
     total_count = len(page_graph_files_paths)
+    
     for page_graph_file_path in page_graph_files_paths:
         print('On count:', count, " out of ", total_count)
         print('Reading page graph: ', page_graph_file_path)
+        
+        
+        # count of trackers/ads/others ;  total count of nodes considered trackers and ads/others ; total count 
+        tracker_node_count = 0
+        ad_node_count = 0
+        others_node_count = 0
+        trackers_and_ads_node_count = 0
+        total_blocked_node_count = 0
+        
 
         current_dict = {}
         current_dict['a'] = 0 # Ad Bytes
@@ -86,14 +97,33 @@ def analyze_size_impact(process_count, page_graph_files_paths):
                 current_dict['a'] += get_blocked_bytes(page_graph, blocked)
             else:
                 current_dict['o'] += get_blocked_bytes(page_graph, blocked)
-
+                
+            if tracker_rules.should_block(url) and ad_rules.should_block(url):
+                trackers_and_ads_node_count += 1
+                ad_node_count += 1
+                tracker_node_count += 1
+            elif  tracker_rules.should_block(url) :
+                tracker_node_count += 1
+            elif ad_rules.should_block(url):
+                ad_node_count += 1
+            else:
+                others_node_count += 1
+            total_blocked_node_count += 1
+                
         
-        website_name = page_graph_file_path.split('/')[-2]
-        website_dict[website_name] = current_dict
+        
+        with open(BYTES_OUTPUT_DIR + f'/{process_count}.txt', "a+", encoding="utf8") as f:
+            f.write(url + "," + str(current_dict['t']) + "," + str(current_dict['a']) + "," +    \
+                    str(current_dict['o']) + "," + str(tracker_node_count) + ',' +             \
+                    str(ad_node_count) +  "," + str(others_node_count) ","                              \
+                    str(trackers_and_ads_node_count) + "," + str(total_blocked_node_count) + "\n")
+        
+        # website_name = page_graph_file_path.split('/')[-2]
+        # website_dict[website_name] = current_dict
 
-    print("Saving all the information of ratios, sizes, and websites...")
-    with open(f'{BYTES_OUTPUT_DIR}/{process_count}.json', 'w') as jsonFile:
-        jsonFile.write(json.dumps(website_dict)) # Dump files
+    # print("Saving all the information of ratios, sizes, and websites...")
+    # with open(f'{BYTES_OUTPUT_DIR}/{process_count}.json', 'w') as jsonFile:
+        # jsonFile.write(json.dumps(website_dict)) # Dump files
 
 
 
