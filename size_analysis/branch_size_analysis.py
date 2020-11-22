@@ -116,11 +116,16 @@ def branch_analysis(graphml_paths, ad_rules, tracker_rules, process_count):
         depths = {}
 
         # On the assumption that the type of branch is det. by earliest ancestor.
+        blocked_trackers_and_ads_bytes = 0
         blocked_tracker_bytes = 0
         blocked_ad_bytes = 0
         blocked_unknown_bytes = 0
 
         unblocked_but_blocked_ancestor_bytes = 0
+
+
+        # for counting number of trackers and ads branches
+        num_tracker_and_ads_branches = 0
 
         # Parse graph for nodes
         try:
@@ -190,7 +195,9 @@ def branch_analysis(graphml_paths, ad_rules, tracker_rules, process_count):
                 current_branch_resources = set()
                 earliest_ancestor = branch_resources[starting_node][0]
                 earliest_ancestor_type = "unknown"
-                if tracker_rules.should_block(graph.nodes[earliest_ancestor]['url']):
+                if tracker_rules.should_block(graph.nodes[earliest_ancestor]['url']) and ad_rules.should_block(graph.nodes[earliest_ancestor]['url']):
+                    earliest_ancestor_type = "tracker_ad"
+                elif tracker_rules.should_block(graph.nodes[earliest_ancestor]['url']):
                     earliest_ancestor_type = "tracker"
                 elif ad_rules.should_block(graph.nodes[earliest_ancestor]['url']):
                     earliest_ancestor_type = "ad"
@@ -214,6 +221,8 @@ def branch_analysis(graphml_paths, ad_rules, tracker_rules, process_count):
                             label = edge_data["edge type"] + "/" + in_node_data["node type"]
 
                         #num_edge_node[starting_node][label] = num_edge_node[starting_node].get(label, 0) + 1
+
+                        # This edge part is not used. delete later (i did not add tracker_ad to this because it's deprecated)
                         if earliest_ancestor_type == "tracker":
                             total_tracker_edge_node[label] = total_tracker_edge_node.get(label, 0) + 1
                         elif earliest_ancestor_type == "ad":
@@ -237,7 +246,14 @@ def branch_analysis(graphml_paths, ad_rules, tracker_rules, process_count):
                         unblocked_calculated.add(rn)
                         unblocked_but_blocked_ancestor_bytes += get_blocked_bytes(graph, rn)
 
-                if earliest_ancestor_type == "tracker":
+                if earliest_ancestor_type == "tracker_ad":
+                    num_tracker_and_ads_branches += 1
+                    for node in branch_resources[starting_node]:
+                        if node in calculated:
+                            continue
+                        blocked_trackers_and_ads_bytes += get_blocked_bytes(graph, node)
+                        calculated.add(node)
+                elif earliest_ancestor_type == "tracker":
                     num_tracker_branches += 1
                     for node in branch_resources[starting_node]:
                         if node in calculated:
@@ -281,11 +297,11 @@ def branch_analysis(graphml_paths, ad_rules, tracker_rules, process_count):
                     calculated.add(ub)
 
             
-            blocked_total_bytes = blocked_tracker_bytes + blocked_ad_bytes + blocked_unknown_bytes
+            blocked_total_bytes = blocked_trackers_and_ads_bytes + blocked_tracker_bytes + blocked_ad_bytes + blocked_unknown_bytes
             #tracker, ad, unknown, total blocked, ... , remaining blocked (not visited),
             # unblocked
             with open(SIZE_ANALYSIS_PATH + f'_{process_count}.txt', "a+", encoding="utf8") as f:
-                f.write(url + "," + str(blocked_tracker_bytes) + "," + str(blocked_ad_bytes) + "," +    \
+                f.write(url + "," + str(blocked_trackers_and_ads_bytes) + "," + str(blocked_tracker_bytes) + "," + str(blocked_ad_bytes) + "," +    \
                         str(blocked_unknown_bytes) + "," + str(blocked_total_bytes) + ',' +             \
                         str(unblocked_but_blocked_ancestor_bytes) +  "," +                              \
                         str(remaining_blocked_total_bytes) + "," + str(unblocked_bytes) + "\n")
@@ -328,10 +344,11 @@ def branch_analysis(graphml_paths, ad_rules, tracker_rules, process_count):
 
 
             with open(OUTPUT_PATH + f'_{process_count}.txt', "a+", encoding="utf8") as f:
-                f.write(url + "$" + str(num_tracker_branches) + "$" + str(num_ad_branches) + "$" +
-                        str(num_unknown_branches) + "$" + str(num_unblocked_branches) + "$" +
-                        str(total_tracker_edge_node) + "$" + str(total_ad_edge_node) + "$" +
-                        str(total_unknown_edge_node) + "$" + str(total_unblocked_edge_node) + "\n")
+                f.write(url + "," + str(num_tracker_and_ads_branches) +  str(num_tracker_branches) + "," + str(num_ad_branches) + "," +
+                        str(num_unknown_branches) + "," + str(num_unblocked_branches) + "," +
+                        # str(total_tracker_edge_node) + "$" + str(total_ad_edge_node) + "$" +
+                        # str(total_unknown_edge_node) + "$" + str(total_unblocked_edge_node) + 
+                        "\n")
 
     
         except Exception as err:
