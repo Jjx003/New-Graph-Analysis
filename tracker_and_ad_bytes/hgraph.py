@@ -30,7 +30,7 @@ def read_graph(f):
         f (String) - File location of graphML
     '''
     try:
-        graph = nx.read_graphml(f, force_multigraph=True)
+        graph = nx.read_graphml(f)
         return graph
     except:
         return None
