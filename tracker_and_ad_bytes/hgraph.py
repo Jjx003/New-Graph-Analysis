@@ -29,12 +29,7 @@ def read_graph(f):
     Parameters:
         f (String) - File location of graphML
     '''
-    try:
-        graph = nx.read_graphml(f)
-        return graph
-    except:
-        return None
-    return None
+    return nx.MultiDiGraph(nx.read_graphml(f))
     
 def resource_nodes(graph):
     '''
