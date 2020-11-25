@@ -169,8 +169,8 @@ def branch_analysis(graphml_paths, ad_rules, tracker_rules, process_count):
 
                 in_edges = graph.in_edges(nbunch=starting_node, data=True)
                 for out_node_id, in_node_id, edge_data in in_edges:
-                    if edge_data['edge type'] == 'executes':
-                        visited_nodes.append(out_node_id)
+                    if edge_data['edge type'] == 'execute':
+                        visited_nodes.add(out_node_id)
                 # Generate branch of this starting node
                 branches[starting_node] = [starting_node]
                 branch_resources[starting_node] = [script_resources[starting_node]]
