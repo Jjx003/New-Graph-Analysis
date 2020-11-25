@@ -10,7 +10,7 @@ FILTER_DIR = './filters/'
 ERROR_LOG_DIR = './errors/'
 PRIVACY_FILTER_FILES = ["easyprivacy_09_10_2020.txt", "ublockprivacy_08_29_2020.txt"]
 AD_FILTER_FILES = ['easylist_09_10_2020.txt', 'ublockfilters_09_10_2020.txt']
-PATHS_FILE = "/home/esiu/get_paths/paths_for_jjx003_09242020.txt"
+PATHS_FILE = "/home/esiu/get_paths/paths_for_a2wu_09242020.txt"
 
 BYTES_OUTPUT_DIR = './output'
 NUM_PROCESSES = 8 # Modify according to your hardware capabilities
