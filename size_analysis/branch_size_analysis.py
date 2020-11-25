@@ -347,7 +347,7 @@ def branch_analysis(graphml_paths, ad_rules, tracker_rules, process_count):
 
 
             with open(OUTPUT_PATH + f'_{process_count}.txt', "a+", encoding="utf8") as f:
-                f.write(url + "," + str(num_tracker_and_ads_branches) +  str(num_tracker_branches) + "," + str(num_ad_branches) + "," +
+                f.write(url + "," + str(num_tracker_and_ads_branches) + "," +  str(num_tracker_branches) + "," + str(num_ad_branches) + "," +
                         str(num_unknown_branches) + "," + str(num_unblocked_branches) + "," +
                         # str(total_tracker_edge_node) + "$" + str(total_ad_edge_node) + "$" +
                         # str(total_unknown_edge_node) + "$" + str(total_unblocked_edge_node) + 
