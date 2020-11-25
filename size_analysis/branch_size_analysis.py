@@ -195,11 +195,14 @@ def branch_analysis(graphml_paths, ad_rules, tracker_rules, process_count):
                 current_branch_resources = set()
                 earliest_ancestor = branch_resources[starting_node][0]
                 earliest_ancestor_type = "unknown"
-                if tracker_rules.should_block(graph.nodes[earliest_ancestor]['url']) and ad_rules.should_block(graph.nodes[earliest_ancestor]['url']):
+                isTrackerBlock = tracker_rules.should_block(graph.nodes[earliest_ancestor]['url'])
+                isAdBlock =  ad_rules.should_block(graph.nodes[earliest_ancestor]['url'])
+
+                if isTrackerBlock and isAdBlock:
                     earliest_ancestor_type = "tracker_ad"
-                elif tracker_rules.should_block(graph.nodes[earliest_ancestor]['url']):
+                elif isTrackerBlock:
                     earliest_ancestor_type = "tracker"
-                elif ad_rules.should_block(graph.nodes[earliest_ancestor]['url']):
+                elif isAdBlock:
                     earliest_ancestor_type = "ad"
 
                 # First level of each branch
