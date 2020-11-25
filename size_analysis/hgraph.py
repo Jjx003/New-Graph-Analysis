@@ -68,6 +68,43 @@ def blocked_resources(graph, nodes):
 
     return blocked_nodes
 
+def resource_nodes_no_data(graph):
+    '''
+    Retrives the resource nodes for a given graph
+    Parameters:
+        graph (Networkx Graph Object) - the graph
+    Output:
+        List of node_id
+    '''
+    nodes = []
+
+    for node_id in graph.nodes():
+        if graph.nodes[node_id]['node type'] == 'resource':
+            nodes.append(node_id)
+    
+    return nodes
+
+def blocked_resources_no_data(graph, nodes):
+    '''
+    Returns list of blocked nodes given list of node_id
+    For use alongside resource_nodes() function.
+    Parameters:
+        graph (Networkx Graph Object) - graph
+        nodes - Resource noeds extracted from graph
+    Output:
+        List of node_id
+    '''
+    blocked_nodes = []
+
+    for node_id in nodes:
+        in_edges = graph.in_edges(nbunch=node_id, data=True)
+        for out_node_id, in_node_id, edge_data in in_edges:
+            if edge_data['edge type'] == 'resource block':
+                blocked_nodes.append(node_id)
+                break
+
+    return blocked_nodes
+
 def find_script_node_from_dom(graph, dom_node_id):
     '''
     Returns scirpt corresponding to dom node, for use in the
@@ -113,4 +150,3 @@ def blocked_information(graph, blocked_nodes):
         total_bytes += int(edge_data['value'])
 
     return (total_bytes, blocked_script_nodes, blocked_request_complete_edges)
-            
