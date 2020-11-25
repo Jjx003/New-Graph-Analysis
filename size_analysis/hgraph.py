@@ -78,8 +78,8 @@ def resource_nodes_no_data(graph):
     '''
     nodes = []
 
-    for node_id in graph.nodes():
-        if graph.nodes[node_id]['node type'] == 'resource':
+    for node_id, data in graph.nodes(data=True):
+        if data['node type'] == 'resource':
             nodes.append(node_id)
     
     return nodes
@@ -150,3 +150,34 @@ def blocked_information(graph, blocked_nodes):
         total_bytes += int(edge_data['value'])
 
     return (total_bytes, blocked_script_nodes, blocked_request_complete_edges)
+            
+def get_scripts(graph):
+    '''
+    Returns list of (html element, script, wheter or not its blocked)
+    '''
+    scripts = set()
+    for n in graph.nodes():
+        if graph.nodes[n]['node type'] == 'resource':
+            rnode = graph.nodes[n]
+            for _,v,data in graph.out_edges(nbunch=n, data=True):
+                if 'resource type' in data:
+                    rt = data['resource type']
+                    re = graph.nodes[v]['node type']
+                    if rt == 'script' and re == 'HTML element':
+                        edges = []
+                        found = False
+                        for u2,v2,data2 in graph.out_edges(nbunch=v, data=True):
+                            if graph.nodes[v2]['node type'] == 'script':
+                                found = True
+                                edges.append((data2['id'], v2))
+                        if found:
+                            by_edge = sorted(edges, key=lambda x: x[0])
+                            script = by_edge[0][1]
+                            in_edges = graph.in_edges(nbunch=n, data=True)
+                            blocked = False
+                            for out_node_id, in_node_id, edge_data in in_edges:
+                                if edge_data['edge type'] == 'resource block':
+                                    blocked = True
+                                    break
+                            scripts.add((v, script, n, blocked))          
+    return scripts
