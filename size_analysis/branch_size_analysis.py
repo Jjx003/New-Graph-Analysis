@@ -15,8 +15,10 @@ from branch_size_analysis_config import *
 # Do not include .txt at the end because the process number will be appended at the end
 OUTPUT_PATH = OUTPUT_DIR + "branch_info_" + SERVER_NUMBER
 SIZE_ANALYSIS_PATH = OUTPUT_DIR + "size_analysis_" + SERVER_NUMBER
+REMAINING_SIZE_ANALYSIS_PATH = OUTPUT_DIR + "remaining_analysis" + SERVER_NUMBER
 DEPTHS_PATH = OUTPUT_DIR + "depths_" + SERVER_NUMBER
 ERROR_PATH = OUTPUT_DIR + "branch_errors_" + SERVER_NUMBER
+
 
 # Lists of filter paths
 AD_PATHS = [FILTER_DIR + s for s in AD_FILES]
@@ -286,10 +288,38 @@ def branch_analysis(graphml_paths, ad_rules, tracker_rules, process_count):
             remaining_blocked_total_bytes = 0
             unblocked_bytes = 0
 
+
+            remaining_blocked_tracker_and_ad_bytes = 0
+            remaining_blocked_tracker_bytes = 0
+            remaining_blocked_ad_bytes = 0
+            remaining_blocked_unknown_bytes = 0
             # blocked_total_bytes will include those in and those not in branches
+            # however, remaining_blocked_total_bytes are those that weren't in branches
             for bn in blocked_resource_nodes:
                 if bn not in calculated:
-                    remaining_blocked_total_bytes += get_blocked_bytes(graph, bn)
+                    unvisited_blocked_type = "unknown"
+                    isUnvisitedTrackerBlock = tracker_rules.should_block(graph.nodes[bn]['url'])
+                    isUnvisitedAdBlock =  ad_rules.should_block(graph.nodes[bn]['url'])
+
+                    if isUnvisitedTrackerBlock and isUnvisitedAdBlock:
+                        unvisited_blocked_type = "tracker_ad"
+                    elif isUnvisitedTrackerBlock:
+                        unvisited_blocked_type = "tracker"
+                    elif isUnvisitedAdBlock:
+                        unvisited_blocked_type = "ad"
+
+                    t_blocked_bytes_count = get_blocked_bytes(graph, bn)
+
+                    if unvisited_blocked_type == "tracker_ad":
+                        remaining_blocked_tracker_and_ad_bytes += t_blocked_bytes_count
+                    elif unvisited_blocked_type == "tracker":
+                        remaining_blocked_tracker_bytes += t_blocked_bytes_count
+                    elif unvisited_blocked_type == "ad":
+                        remaining_blocked_ad_bytes += t_blocked_bytes_count
+                    else:
+                        remaining_blocked_unknown_bytes += t_blocked_bytes_count
+                    
+                    remaining_blocked_total_bytes += t_blocked_bytes_count
                     calculated.add(bn)
 
             # unblocked total bytes for sanity checking
@@ -310,6 +340,13 @@ def branch_analysis(graphml_paths, ad_rules, tracker_rules, process_count):
                         str(remaining_blocked_total_bytes) + "," + str(unblocked_bytes) + "\n")
                 # f.write(url + "," + str(unblocked_bytes) + "\n")
                 # f.write(url + "," + str(unblocked_bytes + blocked_total_bytes + remaining_blocked_total_bytes) + "\n")
+
+
+            # these values have to deal with the resources that were not in a branch
+            with open(REMAINING_SIZE_ANALYSIS_PATH + f'_{process_count}.txt', "a+", encoding="utf8") as f:
+                f.write(url + "," + str(remaining_blocked_tracker_and_ad_bytes) + "," + str(remaining_blocked_tracker_bytes) + "," + str(remaining_blocked_ad_bytes) + "," +    \
+                        str(remaining_blocked_unknown_bytes) + ',' + str(remaining_blocked_total_bytes) + "\n")
+
 
             with open(DEPTHS_PATH + f'_{process_count}.txt', "a+", encoding="utf8") as f:
                 f.write(url + "," + str(depths) + "\n")
