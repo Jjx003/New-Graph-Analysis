@@ -10,6 +10,7 @@ import sys
 import time
 import traceback
 
+# (IMPORTANT) Constants need to be defined in the config file per server
 from branch_size_analysis_config import *
 
 # Do not include .txt at the end because the process number will be appended at the end
@@ -19,13 +20,20 @@ REMAINING_SIZE_ANALYSIS_PATH = OUTPUT_DIR + "remaining_analysis" + SERVER_NUMBER
 DEPTHS_PATH = OUTPUT_DIR + "depths_" + SERVER_NUMBER
 ERROR_PATH = OUTPUT_DIR + "branch_errors_" + SERVER_NUMBER
 
-
 # Lists of filter paths
 AD_PATHS = [FILTER_DIR + s for s in AD_FILES]
 TRACKER_PATHS = [FILTER_DIR + s for s in TRACKER_FILES]
 
 # List of .txt files; Each file contains a string that evaluates into the actual list of graphml paths
 GRAPHML_LIST_PATHS = [GRAPHML_LIST_DIR + s for s in GRAPHML_LIST_FILES]
+
+# Constants for resource types
+UNBLOCKED = 0
+AD = 1
+TRACKER = 2
+OTHER = 3
+AD_TRACKER = 4
+BRANCH_BLOCKED = 5
 
 def nodes_set_to_list(nodes_set):
     """Given a dict or set of nodes, return a sorted list of nodes."""
@@ -64,7 +72,7 @@ def get_graph_and_nodes(path):
     
     return graph, resource_nodes, blocked_nodes, unblocked_nodes
 
-def DFS(graph, node, starting_node, visited_nodes, branches, html_nodes, depth, lexus_stack):
+def DFS(graph, node, starting_node, visited_nodes, branches, html_scripts, depth, DFS_stack):
     """"""
     # Names used in comments: Current Node (Script) -> Connected Node (HTML Element) -> Next Node (Script)
     
@@ -82,52 +90,36 @@ def DFS(graph, node, starting_node, visited_nodes, branches, html_nodes, depth, 
             branches[starting_node].append(in_node_id) # Keep track of connected node in branch
             visited_nodes.add(in_node_id) # Connected node is now visited
 
-            if in_node_id in html_nodes:
-                next_node_id = html_nodes[in_node_id]
+            if in_node_id in html_scripts:
+                # Connected node has an associated next node; Add next node to DFS stack
+                next_node_id = html_scripts[in_node_id]
                 branches[starting_node].append(next_node_id)
                 visited_nodes.add(next_node_id)
-                lexus_stack.append([graph, next_node_id, starting_node, visited_nodes, branches, html_nodes, depth + 1])
-                # DFS(graph, next_node_id, starting_node, visited_nodes, branches, html_nodes)
+                DFS_stack.append([graph, next_node_id, starting_node, visited_nodes, branches, html_scripts, depth + 1])
 
 def get_blocked_bytes(graph, node):
-    """Given a node, calculate how many bytes were requested. Uses outgoing edges """
+    """Given a node, calculate how many bytes were requested."""
     total = 0
     resource_node_out_edges = graph.out_edges(nbunch=node, data=True)
     for _, _, edge_data in resource_node_out_edges:
         if edge_data['edge type'] == 'request complete':
+            # Outgoing edge contains number of bytes used by resource
             total += int(edge_data['value'])
     return total
 
 def branch_analysis(graphml_paths, ad_rules, tracker_rules, process_count):
-    count = 0
+    num_done = 0
     num_graphml_paths = len(graphml_paths)
-    for path in graphml_paths:
-        lexus_stack = []
-        url = path.split("/")[-2]
-        print(str(count) + "/" + str(num_graphml_paths) + ": " + url)
 
-        num_tracker_branches = 0
-        total_tracker_edge_node = {}
-        num_ad_branches = 0
-        total_ad_edge_node = {}
-        num_unknown_branches = 0
-        total_unknown_edge_node = {}
-        num_unblocked_branches = 0
-        total_unblocked_edge_node = {}
-        
+    for path in graphml_paths:
+        url = path.split("/")[-2]
+        print(str(num_done) + "/" + str(num_graphml_paths) + ": " + url)
+
+        DFS_stack = []
         depths = {}
 
-        # On the assumption that the type of branch is det. by earliest ancestor.
-        blocked_trackers_and_ads_bytes = 0
-        blocked_tracker_bytes = 0
-        blocked_ad_bytes = 0
-        blocked_unknown_bytes = 0
-
-        unblocked_but_blocked_ancestor_bytes = 0
-
-
-        # for counting number of trackers and ads branches
-        num_tracker_and_ads_branches = 0
+        num_branches = [0, 0, 0, 0, 0] # Unblocked, Ad, Tracker, Other, Ad_Tracker
+        blocked_bytes = [0, 0, 0, 0, 0, 0] # Unblocked, Ad, Tracker, Other, Ad_Tracker, Branch_Blocked
 
         # Parse graph for nodes
         try:
@@ -137,14 +129,14 @@ def branch_analysis(graphml_paths, ad_rules, tracker_rules, process_count):
             script_nodes = hgraph.get_scripts(graph)
             blocked_script_nodes = {} # Script id: url
             unblocked_script_nodes = {} # Script id: url
-            html_nodes = {} # HTML id: Outgoing script id
+            html_scripts = {} # HTML id: Outgoing script id
             script_resources = {} # Script id: Original resource node
             for html_node, script_node, resource_node, is_blocked in script_nodes:
                 node_data = graph.nodes[script_node]
                 if "url" not in node_data:
                     continue
 
-                html_nodes[html_node] = script_node # Add script id as value of html key
+                html_scripts[html_node] = script_node # Add script id as value of html key
                 script_resources[script_node] = resource_node
                 if is_blocked:
                     blocked_script_nodes[script_node] = node_data["url"] # Add script id to blocked dict
@@ -156,13 +148,9 @@ def branch_analysis(graphml_paths, ad_rules, tracker_rules, process_count):
             visited_nodes = set() # Nodes visted by DFS
             branches = {} # Dict of all script/HTML element nodes generated by a starting node
             branch_resources = {} # Dict of resource nodes created the branch of the starting node
-            #num_edge_node = {} # Dict of how many times edge/node types appear
 
-
-            # testing
             calculated = set()
             unblocked_calculated = set()
-
 
             # Generate branches and first level off each branch (All blocked)
             for starting_node in blocked_starting_nodes:
@@ -176,36 +164,36 @@ def branch_analysis(graphml_paths, ad_rules, tracker_rules, process_count):
                 # Generate branch of this starting node
                 branches[starting_node] = [starting_node]
                 branch_resources[starting_node] = [script_resources[starting_node]]
-                #num_edge_node[starting_node] = {}
                 visited_nodes.add(script_resources[starting_node])
                 visited_nodes.add(starting_node)
                 
                 max_depth = 0
                 
-                lexus_stack.append([graph, starting_node, starting_node, visited_nodes, branches, html_nodes, 0])
+                DFS_stack.append([graph, starting_node, starting_node, visited_nodes, branches, html_scripts, 0])
                 
-                while len(lexus_stack) != 0:
-                    popped_list = lexus_stack.pop()
+                while len(DFS_stack) != 0:
+                    popped_list = DFS_stack.pop()
                     visited_nodes.add(popped_list[1])
                     visited_nodes.add(popped_list[2])
                     if max_depth < popped_list[6]:
                         max_depth = popped_list[6]
-                    DFS(popped_list[0], popped_list[1], popped_list[2], visited_nodes, popped_list[4], popped_list[5], popped_list[6], lexus_stack)
+                    DFS(popped_list[0], popped_list[1], popped_list[2], visited_nodes,
+                        popped_list[4], popped_list[5], popped_list[6], DFS_stack)
                     
                 depths[starting_node] = max_depth
                     
                 current_branch_resources = set()
                 earliest_ancestor = branch_resources[starting_node][0]
-                earliest_ancestor_type = "unknown"
                 isTrackerBlock = tracker_rules.should_block(graph.nodes[earliest_ancestor]['url'])
                 isAdBlock =  ad_rules.should_block(graph.nodes[earliest_ancestor]['url'])
 
+                earliest_ancestor_type = OTHER
                 if isTrackerBlock and isAdBlock:
-                    earliest_ancestor_type = "tracker_ad"
+                    earliest_ancestor_type = AD_TRACKER
                 elif isTrackerBlock:
-                    earliest_ancestor_type = "tracker"
+                    earliest_ancestor_type = TRACKER
                 elif isAdBlock:
-                    earliest_ancestor_type = "ad"
+                    earliest_ancestor_type = AD
 
                 # First level of each branch
                 current_branch_resources = set()
@@ -218,22 +206,6 @@ def branch_analysis(graphml_paths, ad_rules, tracker_rules, process_count):
                         if in_node_data["node type"] == "resource" and in_node_id not in visited_nodes:
                             current_branch_resources.add(in_node_id)
                             visited_nodes.add(in_node_id)
-
-                        # Set label of edge/node type
-                        if in_node_data["node type"] == "HTML element":
-                            label = edge_data["edge type"] + "/HTML/" + in_node_data["tag name"]
-                        else:
-                            label = edge_data["edge type"] + "/" + in_node_data["node type"]
-
-                        #num_edge_node[starting_node][label] = num_edge_node[starting_node].get(label, 0) + 1
-
-                        # This edge part is not used. delete later (i did not add tracker_ad to this because it's deprecated)
-                        if earliest_ancestor_type == "tracker":
-                            total_tracker_edge_node[label] = total_tracker_edge_node.get(label, 0) + 1
-                        elif earliest_ancestor_type == "ad":
-                            total_ad_edge_node[label] = total_ad_edge_node.get(label, 0) + 1
-                        else:
-                            total_unknown_edge_node[label] = total_unknown_edge_node.get(label, 0) + 1
 
                 branch_resources[starting_node] += list(current_branch_resources)
 
@@ -249,104 +221,58 @@ def branch_analysis(graphml_paths, ad_rules, tracker_rules, process_count):
                             break
                     if not blocked:
                         unblocked_calculated.add(rn)
-                        unblocked_but_blocked_ancestor_bytes += get_blocked_bytes(graph, rn)
+                        blocked_bytes[BRANCH_BLOCKED] += get_blocked_bytes(graph, rn)
 
-                if earliest_ancestor_type == "tracker_ad":
-                    num_tracker_and_ads_branches += 1
-                    for node in branch_resources[starting_node]:
-                        if node in calculated:
-                            continue
-                        blocked_trackers_and_ads_bytes += get_blocked_bytes(graph, node)
-                        calculated.add(node)
-                elif earliest_ancestor_type == "tracker":
-                    num_tracker_branches += 1
-                    for node in branch_resources[starting_node]:
-                        if node in calculated:
-                            continue
-                        blocked_tracker_bytes += get_blocked_bytes(graph, node)
-                        calculated.add(node)
-                elif earliest_ancestor_type == "ad":
-                    num_ad_branches += 1
-                    for node in branch_resources[starting_node]:
-                        if node in calculated:
-                            continue
-                        blocked_ad_bytes += get_blocked_bytes(graph, node)
-                        calculated.add(node)
-                else:
-                    # If blocked but not ad, not tracker
-                    num_unknown_branches += 1
-                    for node in branch_resources[starting_node]:
-                        if node in calculated:
-                            continue
-                        blocked_unknown_bytes += get_blocked_bytes(graph, node)
-                        calculated.add(node)
+                num_branches[earliest_ancestor_type] += 1
+                for node in branch_resources[starting_node]:
+                    if node in calculated:
+                        continue
+                    blocked_bytes[earliest_ancestor_type] += get_blocked_bytes(graph, node)
+                    calculated.add(node)
+
 
             #missed_blocked_resource_nodes = blocked_branch_resource_nodes - set(blocked_nodes)
             all_resource_nodes = set(hgraph.resource_nodes_no_data(graph))
             blocked_resource_nodes = set(hgraph.blocked_resources_no_data(graph, all_resource_nodes))
-            blocked_total_bytes = 0
-            remaining_blocked_total_bytes = 0
-            unblocked_bytes = 0
 
+            remaining_blocked_bytes = [0, 0, 0, 0, 0] # (Not used), Ad, Tracker, Other, Ad_Tracker
 
-            remaining_blocked_tracker_and_ad_bytes = 0
-            remaining_blocked_tracker_bytes = 0
-            remaining_blocked_ad_bytes = 0
-            remaining_blocked_unknown_bytes = 0
-            # blocked_total_bytes will include those in and those not in branches
-            # however, remaining_blocked_total_bytes are those that weren't in branches
             for bn in blocked_resource_nodes:
                 if bn not in calculated:
-                    unvisited_blocked_type = "unknown"
                     isUnvisitedTrackerBlock = tracker_rules.should_block(graph.nodes[bn]['url'])
                     isUnvisitedAdBlock =  ad_rules.should_block(graph.nodes[bn]['url'])
 
+                    unvisited_blocked_type = UNKNOWN
                     if isUnvisitedTrackerBlock and isUnvisitedAdBlock:
-                        unvisited_blocked_type = "tracker_ad"
+                        unvisited_blocked_type = AD_TRACKER
                     elif isUnvisitedTrackerBlock:
-                        unvisited_blocked_type = "tracker"
+                        unvisited_blocked_type = TRACKER
                     elif isUnvisitedAdBlock:
-                        unvisited_blocked_type = "ad"
+                        unvisited_blocked_type = AD
 
-                    t_blocked_bytes_count = get_blocked_bytes(graph, bn)
-
-                    if unvisited_blocked_type == "tracker_ad":
-                        remaining_blocked_tracker_and_ad_bytes += t_blocked_bytes_count
-                    elif unvisited_blocked_type == "tracker":
-                        remaining_blocked_tracker_bytes += t_blocked_bytes_count
-                    elif unvisited_blocked_type == "ad":
-                        remaining_blocked_ad_bytes += t_blocked_bytes_count
-                    else:
-                        remaining_blocked_unknown_bytes += t_blocked_bytes_count
-                    
-                    remaining_blocked_total_bytes += t_blocked_bytes_count
+                    remaining_blocked_bytes[unvisited_blocked_type] += get_blocked_bytes(graph, bn)
                     calculated.add(bn)
 
             # unblocked total bytes for sanity checking
             unblocked_resource_nodes = all_resource_nodes.difference(blocked_resource_nodes)
             for ub in unblocked_resource_nodes:
                 if ub not in calculated:
-                    unblocked_bytes += get_blocked_bytes(graph, ub)
+                    blocked_bytes[UNBLOCKED] += get_blocked_bytes(graph, ub)
                     calculated.add(ub)
 
-            
-            blocked_total_bytes = blocked_trackers_and_ads_bytes + blocked_tracker_bytes + blocked_ad_bytes + blocked_unknown_bytes
-            #tracker, ad, unknown, total blocked, ... , remaining blocked (not visited),
-            # unblocked
+            # blocked_total_bytes will include those in and those not in branches
+            # total_remaining_blocked_bytes are those that weren't in branches
+            blocked_total_bytes = sum(blocked_bytes[1:5]) # Ad, Tracker, Other, Ad_Tracker
+            total_remaining_blocked_bytes = sum(remaining_blocked_bytes)
+
             with open(SIZE_ANALYSIS_PATH + f'_{process_count}.txt', "a+", encoding="utf8") as f:
-                f.write(url + "," + str(blocked_trackers_and_ads_bytes) + "," + str(blocked_tracker_bytes) + "," + str(blocked_ad_bytes) + "," +    \
-                        str(blocked_unknown_bytes) + "," + str(blocked_total_bytes) + ',' +             \
-                        str(unblocked_but_blocked_ancestor_bytes) +  "," +                              \
-                        str(remaining_blocked_total_bytes) + "," + str(unblocked_bytes) + "\n")
-                # f.write(url + "," + str(unblocked_bytes) + "\n")
-                # f.write(url + "," + str(unblocked_bytes + blocked_total_bytes + remaining_blocked_total_bytes) + "\n")
+                f.write(url + "," + str(blocked_bytes).strip("[]") + "," + str(blocked_total_bytes) + ','
+                        + str(remaining_blocked_total_bytes) + "\n")
 
-
-            # these values have to deal with the resources that were not in a branch
+            # Blocked resources not found in a branch
             with open(REMAINING_SIZE_ANALYSIS_PATH + f'_{process_count}.txt', "a+", encoding="utf8") as f:
                 f.write(url + "," + str(remaining_blocked_tracker_and_ad_bytes) + "," + str(remaining_blocked_tracker_bytes) + "," + str(remaining_blocked_ad_bytes) + "," +    \
                         str(remaining_blocked_unknown_bytes) + ',' + str(remaining_blocked_total_bytes) + "\n")
-
 
             with open(DEPTHS_PATH + f'_{process_count}.txt', "a+", encoding="utf8") as f:
                 f.write(url + "," + str(depths) + "\n")
@@ -358,38 +284,17 @@ def branch_analysis(graphml_paths, ad_rules, tracker_rules, process_count):
                 
                 # Generate branch of this starting node
                 branches[starting_node] = [starting_node]
-                #num_edge_node[starting_node] = {}
                 visited_nodes.add(starting_node)
-                while len(lexus_stack) != 0:
-                    popped_list = lexus_stack.pop()
+                while len(DFS_stack) != 0:
+                    popped_list = DFS_stack.pop()
                     visited_nodes.add(popped_list[1])
                     visited_nodes.add(popped_list[2])
                     DFS(popped_list[0], popped_list[1], popped_list[2], visited_nodes, popped_list[4], popped_list[5])
 
-                # First level of each branch
-                for node_id in branches[starting_node]:
-                    out_edges = graph.out_edges(nbunch=node_id, data=True)
-                    for out_node_id, in_node_id, edge_data in out_edges:
-                        # Set label of edge/node type
-                        in_node_data = graph.nodes[in_node_id]
-                        if in_node_data["node type"] == "HTML element":
-                            label = edge_data["edge type"] + "/HTML/" + in_node_data["tag name"]
-                        else:
-                            label = edge_data["edge type"] + "/" + in_node_data["node type"]
-
-                        #num_edge_node[starting_node][label] = num_edge_node[starting_node].get(label, 0) + 1
-                        total_unblocked_edge_node[label] = total_unblocked_edge_node.get(label, 0) + 1
-
-                num_unblocked_branches += 1
-
+                num_branches[UNBLOCKED] += 1
 
             with open(OUTPUT_PATH + f'_{process_count}.txt', "a+", encoding="utf8") as f:
-                f.write(url + "," + str(num_tracker_and_ads_branches) + "," +  str(num_tracker_branches) + "," + str(num_ad_branches) + "," +
-                        str(num_unknown_branches) + "," + str(num_unblocked_branches) + "," +
-                        # str(total_tracker_edge_node) + "$" + str(total_ad_edge_node) + "$" +
-                        # str(total_unknown_edge_node) + "$" + str(total_unblocked_edge_node) + 
-                        "\n")
-
+                f.write(url + "," + str(num_branches).strip("[]") + "," + "\n")
     
         except Exception as err:
             # Save and print error and stack trace
@@ -401,7 +306,7 @@ def branch_analysis(graphml_paths, ad_rules, tracker_rules, process_count):
                 f.write(track+'\n')
             print("error in " + url)            
             print(track)
-        count += 1
+        num_done += 1
     
 def main():
     ad_rules = get_rules(AD_PATHS)
