@@ -165,7 +165,7 @@ def analyze_size_impact(process_count, page_graph_files_paths):
                     str(current_dict['o']) + "\n")
         
         with open(NODES_OUTPUT_DIR + f'_{process_count}.txt', "a+", encoding="utf8") as f:
-            f.write(website_url + "," + str(trackers_and_ads_node_count) + "," + str(tracker_node_count) + ',' + str(ad_node_count) +  "," + \ 
+            f.write(website_url + "," + str(trackers_and_ads_node_count) + "," + str(tracker_node_count) + ',' + str(ad_node_count) +  "," + \
                     str(others_node_count) + "," + str(total_blocked_node_count) + "\n")
 
         with open(URLS_OUTPUT_DIR + f'_{process_count}.txt', "a+", encoding="utf8") as f:
