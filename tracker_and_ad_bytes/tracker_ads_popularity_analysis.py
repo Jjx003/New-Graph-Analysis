@@ -14,10 +14,9 @@ PRIVACY_FILTER_FILES = ["easyprivacy_09_10_2020.txt", "ublockprivacy_08_29_2020.
 AD_FILTER_FILES = ['easylist_09_10_2020.txt', 'ublockfilters_09_10_2020.txt']
 PATHS_FILE = "/home/esiu/get_paths/paths_for_a2wu_09242020.txt"
 
-BYTES_OUTPUT_DIR = './output/bytes_count.txt'
-NODES_OUTPUT_DIR = './output/node_count.txt'
-TRACKERS_OUTPUT_DIR = './output/trackers_url.txt'
-ADS_OUTPUT_DIR = './output/ads_url.txt'
+BYTES_OUTPUT_DIR = './output/bytes_count'
+NODES_OUTPUT_DIR = './output/node_count'
+URLS_OUTPUT_DIR = './output/urls'
 
 NUM_PROCESSES = 8 # Modify according to your hardware capabilities
 
@@ -161,15 +160,15 @@ def analyze_size_impact(process_count, page_graph_files_paths):
                 
         
         
-        with open(BYTES_OUTPUT_DIR + f'/{process_count}.txt', "a+", encoding="utf8") as f:
+        with open(BYTES_OUTPUT_DIR + f'_{process_count}.txt', "a+", encoding="utf8") as f:
             f.write(website_url + "," + str(current_dict['t_a'] + "," + str(current_dict['t']) + "," + str(current_dict['a']) + "," +    \
                     str(current_dict['o']) + "\n")
         
-        with open(NODES_OUTPUT_DIR + f'/{process_count}.txt', "a+", encoding="utf8") as f:
+        with open(NODES_OUTPUT_DIR + f'_{process_count}.txt', "a+", encoding="utf8") as f:
             f.write(website_url + "," + str(trackers_and_ads_node_count) + "," + str(tracker_node_count) + ',' + str(ad_node_count) +  "," \ 
                     + str(others_node_count) + "," + str(total_blocked_node_count) + "\n")
 
-        with open(URLS_OUTPUT_DIR + f'/{process_count}.txt', "a+", encoding="utf8") as f:
+        with open(URLS_OUTPUT_DIR + f'_{process_count}.txt', "a+", encoding="utf8") as f:
             f.write(website_url + "$$" + json.dumps(tracker_urls) + "$$" + json.dumps(ads_urls) + "$$" + json.dumps(other_urls) + "\n")
         
         
