@@ -8,17 +8,8 @@ import hgraph
 import multiprocessing
 from adblockparser import AdblockRules
 
-FILTER_DIR = './filters/'
-ERROR_LOG_DIR = './errors/'
-PRIVACY_FILTER_FILES = ["easyprivacy_09_10_2020.txt", "ublockprivacy_08_29_2020.txt"]
-AD_FILTER_FILES = ['easylist_09_10_2020.txt', 'ublockfilters_09_10_2020.txt']
-PATHS_FILE = "/home/esiu/get_paths/paths_for_a2wu_09242020.txt"
-
-BYTES_OUTPUT_DIR = './output/bytes_count'
-NODES_OUTPUT_DIR = './output/node_count'
-URLS_OUTPUT_DIR = './output/urls'
-
-NUM_PROCESSES = 8 # Modify according to your hardware capabilities
+# (IMPORTANT) Constants need to be defined in the config file per server
+from tracker_ads_popularity_analysis import *
 
 
 # Read the blocking rules and utlize AdblockRules library to generate block checking
@@ -171,13 +162,6 @@ def analyze_size_impact(process_count, page_graph_files_paths):
         with open(URLS_OUTPUT_DIR + f'_{process_count}.txt', "a+", encoding="utf8") as f:
             f.write(website_url + "$$" + json.dumps(tracker_urls) + "$$" + json.dumps(ads_urls) + "$$" + json.dumps(other_urls) + "\n")
         
-        
-        # website_name = page_graph_file_path.split('/')[-2]
-        # website_dict[website_name] = current_dict
-
-    # print("Saving all the information of ratios, sizes, and websites...")
-    # with open(f'{BYTES_OUTPUT_DIR}/{process_count}.json', 'w') as jsonFile:
-        # jsonFile.write(json.dumps(website_dict)) # Dump files
 
 
 
