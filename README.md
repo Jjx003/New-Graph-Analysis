@@ -54,7 +54,11 @@ graphs.
 #### Usage
 
 1. Run tracker_ads_popularity_analysis.py on all the graphml data (using the output from get_paths.py).
-2. Run ipynb's on the urls data.
-
+2. Open the jupyter notebooks.
+3. Edit the constants: 
+    - URL_DATA_FOLDER to wherever the urls folder is from Step 1.
+    - ALEXA_TOP_1M_FILEPATH to wherever the alexa top1m list is
+    - any constant ending in _FILE or _PATH is simply where the graphs will be saved to (.pdf files).
+4. Run the jupyter notebooks until the end.
 
 
