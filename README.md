@@ -26,9 +26,26 @@ __TODO: need to modify this readme for branch-analysis updates.__
 In this script, we create a simple chart that depicts the median sizes
 of the ad and tracker bytes. We also add a line depicting the standard deviation.
 
-## Requirements
+#### Requirements
 In order to utilize this script, we need to make sure we have the generated JSON
 data from Size Analysis (1).
+
+## 3. Popularity Analysis
+In this script, we utilize the graphml data and filter lists to obtain data on trackers and ads
+per website. From the gathered, we can calculate the amount of trackers, ads, and how the popularity of a 
+website (based on its position on the Alexa Top 1M) will affect such amounts. 
+
+#### Requirements
+In order to utilize this script, you must run the tracker_ads_popularity_analysis.py to grab data on all
+of the websites. Once doing so, you can use the ipynb to run analysis on "urls_?.txt" files to generate the
+graphs.
+
+#### Usage
+
+1. Run tracker_ads_popularity_analysis.py on all the graphml data (using the output from get_paths.py).
+2. Run ipynb's on the urls data.
+
+
 
 __TODO: Need to modify notebook to include others column and explain a few things in python script__
 
