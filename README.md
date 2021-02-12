@@ -30,6 +30,17 @@ of the ad and tracker bytes. We also add a line depicting the standard deviation
 In order to utilize this script, we need to make sure we have the generated JSON
 data from Size Analysis (1).
 
+
+__TODO: Need to modify notebook to include others column and explain a few things in python script__
+
+#### Setup
+1. Enter the "tracker_and_ad_bytes" directory.
+2. Open up the notebook file.
+3. Modify the "data_dir" variable to point to your directory containing the various json files from
+the size analysis script.
+4. Simply run the notebook from top down after configuring this directory.
+
+
 ## 3. Popularity Analysis
 In this script, we utilize the graphml data and filter lists to obtain data on trackers and ads
 per website. From the gathered, we can calculate the amount of trackers, ads, and how the popularity of a 
@@ -46,13 +57,4 @@ graphs.
 2. Run ipynb's on the urls data.
 
 
-
-__TODO: Need to modify notebook to include others column and explain a few things in python script__
-
-### Setup
-1. Enter the "tracker_and_ad_bytes" directory.
-2. Open up the notebook file.
-3. Modify the "data_dir" variable to point to your directory containing the various json files from
-the size analysis script.
-4. Simply run the notebook from top down after configuring this directory.
 
