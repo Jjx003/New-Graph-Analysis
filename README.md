@@ -12,15 +12,15 @@ __TODO: need to modify this readme for branch-analysis updates.__
 1. Clone the repository.
 2. Ensure you have modified the filepaths in get_paths.py and ran the get_paths.py on your graph folder.
 3. Modify config file: nodal_size_analysis_config.py.
-4. Modify filepaths for branch-analysis.py.
+4. Modify config file: branch_size_analysis_config.py.
 
 #### Usage
 
 1. Run nodal_size_analysis.py on all the graphml data
-2. Run branch-analysis.py on all the graphml data.
+2. Run branch_size_analysis.py on all the graphml data.
 3. Modify filepaths for paper-ready python notebook for the data from 
-    size-analysis.py and branch-analysis.py
-4. Run the paper-ready python notebook to generate data.
+    nodal_size_analysis.py and branch_size_analysis.py
+4. Run the size_analysis_paper_ready python notebook to generate data.
 
 ## 2. Tracker and Ad Bytes Analysis
 In this script, we create a simple chart that depicts the median sizes
