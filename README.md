@@ -11,8 +11,6 @@ to utilize each of them, starting with the Size Analysis script.
 
 ## 1. Size Analysis
 
-__TODO: need to modify this readme for branch-analysis updates.__
-
 #### Setup
 1. Clone the repository.
 2. Ensure you have modified the filepaths in get_paths.py and ran the get_paths.py on your graph folder.
