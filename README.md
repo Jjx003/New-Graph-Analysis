@@ -4,6 +4,11 @@ This repository contains the various scripts utilized in our paper
 "A Brave new World." In the following sections, we document how
 to utilize each of them, starting with the Size Analysis script.
 
+## 0. Requirements for All Analyses
+- Python3 and pip3
+- Jupyter Notebook
+- Python Packages you may need to install: NetworkX, adblockparser
+
 ## 1. Size Analysis
 
 __TODO: need to modify this readme for branch-analysis updates.__
