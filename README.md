@@ -33,9 +33,6 @@ of the ad and tracker bytes. We also add a line depicting the standard deviation
 In order to utilize this script, we need to make sure we have the generated JSON
 data from Size Analysis (1).
 
-
-__TODO: Need to modify notebook to include others column and explain a few things in python script__
-
 #### Setup
 1. Enter the "tracker_and_ad_bytes" directory.
 2. Open up the notebook file.
